@@ -46,7 +46,7 @@ labeldf = pd.read_csv(labeldf_path)
 
 # Plot
 def plotling_3_charts(df, feature):
-    ## import seaborn, matplotlab and scipy库 
+    ## import seaborn, matplotlab and scipy 
     import seaborn as sns
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
