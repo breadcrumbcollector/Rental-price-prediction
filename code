@@ -3,27 +3,27 @@
 
 # import library
 import pandas as pd
-
-import plotly.express as px
-import plotly.graph_objects as go
-from scipy import stats
 import numpy as np
 import datetime
 import seaborn as sns
 import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.graph_objects as go
+from scipy import stats
+
 
 # Define a generic function
 def data_comprehension(path):
 
     df = pd.read_csv(path,encoding='utf-8')
     print('Dataset dimension:'f'{df.shape}')
-    print('Statistic-------------------------------')
+    print('Statistic---')
     print(df.describe())
-    print('Type-----------------------------------')
+    print('Type--')
     print(df.info())
-    print('Duplicates---------------------------------')
+    print('Duplicates--')
     print('Duplicates:'f'{df.duplicated().sum()}')
-    print('NA---------------------------------')
+    print('NA--')
     print(df.isnull().sum())
     print(df.head())
     
@@ -41,12 +41,12 @@ combine(train_path,test_path)
 
 ## EDA Analysis
 %%time
-labeldf_path = r'/Users/yufeichen/Downloads/labeldf.csv'
+labeldf_path = r'--/labeldf.csv'
 labeldf = pd.read_csv(labeldf_path)
 
 # Plot
 def plotling_3_charts(df, feature):
-    ## import seaborn, matplotlab and scipy 
+
     import seaborn as sns
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
@@ -65,11 +65,11 @@ def plotling_3_charts(df, feature):
     ## plot the histogram. 
     sns.distplot(a = df.loc[:,feature], ax = ax1)
 
-    # customizing the QQ_plot. 
+    # customizing the QQ_plot 
     ax2 = fig.add_subplot(grid[1, :2])
     ## Set the title. 
     ax2.set_title('QQ_plot')
-    ## Plotting the QQ_Plot. 
+    ## Plotting the QQ_Plot
     stats.probplot(df.loc[:,feature], plot = ax2)
 
     ## Customizing the Box Plot. 
@@ -81,7 +81,7 @@ def plotling_3_charts(df, feature):
     
 plotling_3_charts(labeldf,'rent')
 
-label_fig = px.histogram(labeldf,x = 'rent',histnorm='probability',marginal = 'box')
+label_fig = px.histogram(labeldf, x = 'rent', histnorm='probability', marginal = 'box')
 label_fig.write_html(r'--/label.html')
 
 
