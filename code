@@ -1,0 +1,529 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# import library
+import pandas as pd
+
+import plotly.express as px
+import plotly.graph_objects as go
+from scipy import stats
+import numpy as np
+import datetime
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Define a generic function
+def data_comprehension(path):
+
+    df = pd.read_csv(path,encoding='utf-8')
+    print('Dataset dimension:'f'{df.shape}')
+    print('Statistic-------------------------------')
+    print(df.describe())
+    print('Type-----------------------------------')
+    print(df.info())
+    print('Duplicates---------------------------------')
+    print('Duplicates:'f'{df.duplicated().sum()}')
+    print('NA---------------------------------')
+    print(df.isnull().sum())
+    print(df.head())
+    
+# Training
+train_path = r'--/train.csv'
+data_comprehension(train_path)
+
+# Testing
+test_path = r'--/test.csv'
+data_comprehension(test_path)
+
+# Combine
+%%time
+combine(train_path,test_path)
+
+## EDA Analysis
+%%time
+labeldf_path = r'/Users/yufeichen/Downloads/labeldf.csv'
+labeldf = pd.read_csv(labeldf_path)
+
+# Plot
+def plotling_3_charts(df, feature):
+    ## import seaborn, matplotlab and scipy库 
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    import matplotlib.gridspec as gridspec
+    from scipy import stats
+    import matplotlib.style as style
+    style.use('fivethirtyeight')
+
+    ## Customizing graph
+    fig = plt.figure(constrained_layout=True, figsize=(12,8))
+    grid = gridspec.GridSpec(ncols=3, nrows=3, figure=fig)
+
+    ## Customizing the histogram grid. 
+    ax1 = fig.add_subplot(grid[0, :2])
+    ## Set the title. 
+    ax1.set_title('Histogram')
+    ## plot the histogram. 
+    sns.distplot(a = df.loc[:,feature], ax = ax1)
+
+    # customizing the QQ_plot. 
+    ax2 = fig.add_subplot(grid[1, :2])
+    ## Set the title. 
+    ax2.set_title('QQ_plot')
+    ## Plotting the QQ_Plot. 
+    stats.probplot(df.loc[:,feature], plot = ax2)
+
+    ## Customizing the Box Plot. 
+    ax3 = fig.add_subplot(grid[:, 2])
+    ## Set title. 
+    ax3.set_title('Box Plot')
+    ## Plotting the box plot. 
+    sns.boxplot(data = df.loc[:,feature], orient='v', ax = ax3 );
+    
+plotling_3_charts(labeldf,'rent')
+
+label_fig = px.histogram(labeldf,x = 'rent',histnorm='probability',marginal = 'box')
+label_fig.write_html(r'--/label.html')
+
+
+skew_num = labeldf['rent'].skew()
+print(f'skew:{skew_num}')
+kurt_num = labeldf['rent'].kurt()
+print(f'kurt:{kurt_num}')
+
+# plot
+def histogram_generate(df,save_path):
+    # column name
+    col_list = list(df.columns)
+    for i in col_list:
+        fig = px.histogram(df,x = i,histnorm='probability',marginal = 'box')
+        fig.write_html(f'{save_path}/{i}.html')
+    
+%%time
+num_feature  = pd.read_csv(r'--/num_var.csv')
+save_path = r'--/single variable-num'
+histogram_generate(num_feature,save_path)
+
+%%time
+object_feature = pd.read_csv(r'--/object_var.csv')
+save_path = r'--/single variable-object'
+histogram_generate(object_feature,save_path)\
+    
+def plotling_corr(df,save_path):
+    corrdf = df.corr()
+    pic = px.imshow(corrdf,text_auto=True,aspect="auto",color_continuous_scale='RdBu_r')
+    # pic.write_html(f'{save_path}/total_corr.html')
+    pic.show()
+
+num_feature  = pd.read_csv(r'--/num_var.csv')
+save_path = r'--/bivariate-total correlation matrix'
+plotling_corr(num_feature,save_path)
+
+# scatter plot
+def plotling_scatter(train_path,label,save_path):
+    traindf = pd.read_csv(train_path)
+    numdf = traindf.select_dtypes(exclude = ['bool','object'])
+    for i in list(numdf.columns):
+        if i != label:
+            fig = px.scatter(numdf,x = i,y = label)
+            fig.write_html(f'{save_path}/{i}.html')
+
+train_path = r'--/train.csv'
+save_path = r'--/bivariate-scatterplot'
+plotling_scatter(train_path,'rent',save_path)
+
+box_list = ['type','condition','Heating System','interior quality']
+traindf = pd.read_csv(train_path)
+for i in box_list:
+    fig = px.box(traindf,x = i,y = 'rent')
+    fig.write_html(f'--/{i}.html')
+
+## regression analysis
+def residplot_plotling(df_path,label):
+    # import seaborn
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    df = pd.read_csv(df_path)
+    numdf = df.select_dtypes(exclude = ['bool','object'])
+    for i in list(numdf.columns):
+        if i != label:
+            sns.residplot(x = numdf[i],y = numdf[label])
+            plt.tight_layout()
+            plt.show()
+
+train_path = r'--/train.csv'
+residplot_plotling(train_path,'rent')
+
+## data cleaning
+def isnull_count(df):
+    null_num = df.isnull().sum()
+    total_num = df.isnull().count()
+    nulldf = pd.DataFrame({'na_num':null_num,'Total':total_num})
+    nulldf['na_proportion'] = nulldf['na_num'] / nulldf['Total']
+    nulldf = nulldf.sort_values(by = 'na_proportion',ascending = False)
+    return nulldf
+
+totaldf = pd.read_csv(r'--/totaldf.csv')
+totaldf.shape
+
+nulldf = isnull_count(totaldf)
+nulldf
+
+# Drop electricity price
+totaldf = totaldf.drop(['electricity price','last renewal date'],axis = 1)
+totaldf.shape
+
+totaldf = totaldf.drop(['zip code'],axis = 1)
+totaldf.shape
+
+iddf = totaldf[['ID']]
+iddf.to_csv(r'---/iddf.csv',index = False,encoding = 'utf-8')
+# Drop ID
+totaldf = totaldf.drop(['ID','Upload date'],axis = 1)
+totaldf.shape
+
+def iqr_outliers(df):
+    q1 = df.quantile(0.25)
+    q3 = df.quantile(0.75)
+    iqr = q3 - q1
+    lower_tail = q1 - 1.5 * iqr
+    upper_tail = q3 + 1.5 * iqr
+    df = df.map(lambda x: lower_tail if x <lower_tail else upper_tail if x > upper_tail else x)
+    return df
+
+objectdf = totaldf.select_dtypes(include = ['bool','object'])
+object_list = list(objectdf.columns)
+object_list
+
+traindf = totaldf.iloc[:200000,:]
+testdf = totaldf.iloc[200000:,:]
+
+%%time
+for i in traindf.columns:
+    if i not in object_list:
+        if traindf[i].dtype == 'int64':
+            traindf[i] = iqr_outliers(traindf[i])
+            traindf[i] = traindf[i].astype(int)
+            print(f'{i} sucess')
+        elif traindf[i].dtype == 'float64':
+            traindf[i] = iqr_outliers(traindf[i])
+            traindf[i] = traindf[i].astype(float)
+            print(f'{i} success')
+
+# Combine again
+totaldf = pd.concat([traindf,testdf],axis = 0)
+totaldf.head()
+
+%%time
+labeldf['rent'] = labeldf['rent'].fillna(0)
+labeldf['rent'] = iqr_outliers(labeldf['rent'])
+
+plotling_3_charts(labeldf,'rent')
+
+skew_num = labeldf['rent'].skew()
+print(f'skew:{skew_num}')
+kurt_num = labeldf['rent'].kurt()
+print(f'kurt:{kurt_num}')
+
+# Deal with N/A
+num_feature = totaldf.select_dtypes(exclude = ['bool','object']).columns
+for i in num_feature:
+    null_num = totaldf[i].isnull().sum()
+    if null_num > 0:
+        totaldf[i] = totaldf[i].fillna(totaldf[i].median())
+        print(f'{i} success')
+
+object_feature = totaldf.select_dtypes(include = ['bool','object']).columns
+for i in object_feature:
+    null_num = totaldf[i].isnull().sum()
+    if null_num > 0:
+        mode_num = totaldf[i].value_counts().index[0]
+        totaldf[i] = totaldf[i].fillna(mode_num)
+        print(f'{i} success')
+
+def residplot_plotling(df,label):
+    # import seaborn
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    numdf = df.select_dtypes(exclude = ['bool','object'])
+    for i in list(numdf.columns):
+        if i != label:
+            sns.residplot(x = numdf[i],y = numdf[label])
+            plt.tight_layout()
+            plt.show()
+
+traindf = totaldf.iloc[:200000,:]
+traindf = pd.concat([traindf,labeldf],axis = 1)
+numdf = traindf.select_dtypes(exclude = ['bool','object'])
+numdf.shape
+
+residplot_plotling(numdf,'rent')
+
+totaldf['no parking'].value_counts()
+
+totaldf = totaldf.drop(['no parking'],axis = 1)
+totaldf.shape
+
+label_copy = labeldf.copy()
+# log1p
+label_copy['rent'] = np.log1p(label_copy['rent'])
+plotling_3_charts(label_copy,'rent')
+
+skew_num = label_copy['rent'].skew()
+print(f'skew:{skew_num}')
+kurt_num = label_copy['rent'].kurt()
+print(f'Kurt:{kurt_num}')
+
+# import LabelEncoder
+from sklearn.preprocessing import LabelEncoder
+
+object_feature = totaldf.select_dtypes(include = ['bool','object']).columns
+for i in object_feature:
+    if i != 'Upload date':
+        totaldf[f'{i}-encoder'] = LabelEncoder().fit_transform(totaldf[i])
+        totaldf = totaldf.drop([i],axis = 1)
+        print(f'{i} success')
+totaldf.head()
+
+# current year
+this_year = datetime.datetime.now().year
+this_year
+
+totaldf['age'] = this_year - totaldf['year build']
+totaldf.head()
+
+totaldf['avg sqft'] = totaldf['sqft']/totaldf['room number']
+totaldf.head()
+
+# lightGBM
+
+# Import related libraries
+import optuna
+# Detect not-so-good hyperparameter sets before training on the data, thus significantly reducing search time
+from optuna.integration import LightGBMPruningCallback
+# K-fold cross-validation
+from sklearn.model_selection import StratifiedKFold,KFold
+# train and test set split
+from sklearn.model_selection import train_test_split
+import lightgbm as lgbm
+# for saving and extracting models
+import joblib
+
+traindf = totaldf.iloc[:200000,:]
+testdf = totaldf.iloc[200000:,:]
+x = traindf
+# target variable
+y = labeldf['rent']
+
+def objective(trial, x, y,fold_time):
+
+    params_grid = {'n_estimators':trial.suggest_int('n_estimators',50,1000), 
+               'learning_rate':trial.suggest_float('learning_rate',0.01,0.3),
+               'num_leaves':trial.suggest_int('num_leaves',5,100),
+               'max_depth':trial.suggest_int('max_depth',3,12),
+               'min_data_in_leaf':trial.suggest_int('min_data_in_leaf',5,100),
+               'max_bin':trial.suggest_int('max_bin',10,300),
+               "lambda_l1": trial.suggest_int("lambda_l1", 0, 100, step=5),
+               "lambda_l2": trial.suggest_int("lambda_l2", 0, 100, step=5),
+               "min_gain_to_split": trial.suggest_float("min_gain_to_split", 0, 15),
+               "bagging_fraction": trial.suggest_float("bagging_fraction", 0.2, 1.0, step=0.1),
+               "bagging_freq": trial.suggest_categorical("bagging_freq", [1]),
+               "feature_fraction": trial.suggest_float("feature_fraction", 0.2, 1.0, step=0.1)
+               }
+    # set KFold and StratifiedKFlod
+    cv = KFold(n_splits=fold_time, shuffle=True, random_state=2022)
+
+    # cv_scores = np.empty(fold_time)
+    cv_scores = np.zeros(fold_time)
+    # split
+    for idx, (train_idx, test_idx) in enumerate(cv.split(x, y)):
+        X_train, X_test = x.iloc[train_idx], x.iloc[test_idx]
+        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+
+        model = lgbm.LGBMRegressor(boosting_type = 'gbdt',
+                                    objective='regression', 
+                                    n_jobs = -1,
+                                    force_row_wise = True,
+                                    **params_grid)
+        model.fit(
+            X_train,
+            y_train,
+            eval_set=[(X_test, y_test)],
+            eval_metric='l1',
+            early_stopping_rounds=100,
+            verbose = False,
+            callbacks = [LightGBMPruningCallback(trial,'l1')]
+        )
+        pred_score = model.score(X_test,y_test)
+        cv_scores[idx] = pred_score
+    return np.mean(cv_scores)
+%%time
+# direction: set minimize and maximize
+study = optuna.create_study(study_name = 'LGBMRegressor',direction = 'minimize')
+
+func = lambda trial:objective(trial,x,y,fold_time = 7)
+
+study.optimize(func,n_trials = 20)
+
+print(f'min_mae:{study.best_value}')
+
+for key,value in study.best_params.items():
+    print(f'{key} = {value},')
+    
+# split
+x_train,x_test,y_train,y_test = train_test_split(x,y,test_size = 0.25)
+LGBMR = lgbm.LGBMRegressor(boosting_type = 'gbdt',
+                        objective='regression', 
+                        n_jobs = -1,
+                        force_row_wise = True,
+                        n_estimators = 194,
+                        learning_rate = 0.04784318156336643,
+                        num_leaves = 31,
+                        max_depth = 4,
+                        min_data_in_leaf = 52,
+                        max_bin = 86,
+                        lambda_l1 = 30,
+                        lambda_l2 = 5,
+                        min_gain_to_split = 0.3070842041335403,
+                        bagging_fraction = 0.30000000000000004,
+                        bagging_freq = 1,
+                        feature_fraction = 0.30000000000000004)
+LGBMR.fit(x_train,y_train)
+
+# save
+joblib.dump(LGBMR,r'--/LGBMR.pkl')
+
+# read the model
+LGBMR = joblib.load(r'--/LGBMR.pkl')
+# predict
+y_pred = LGBMR.predict(testdf)
+# ID
+test_id = iddf.iloc[200000:,:]
+# submit
+submitdf = pd.DataFrame({'ID':test_id['ID'],'rent':y_pred})
+submitdf.to_csv(r'--/submitdf.csv',index = False,encoding = 'utf-8')
+submitdf.head() # 148.64429
+
+# catboost
+# library
+import optuna
+import numpy as np
+import pandas as pd
+
+from sklearn.model_selection import StratifiedKFold,KFold
+
+from sklearn.model_selection import train_test_split
+
+import catboost
+
+# parameter
+def regression_objective(trial, x, y, fold_time):
+    params_grid = {
+        'iterations': trial.suggest_int('iterations', 10, 1000),
+        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3),
+        'depth': trial.suggest_int('depth', 3, 16),
+        'l2_leaf_reg': trial.suggest_float('l2_leaf_reg', 0.0001, 3.0, log=True),
+        'rsm': trial.suggest_float('rsm', 0.2, 1.0),
+        'border_count': trial.suggest_int('border_count', 10, 300),
+        'leaf_estimation_method': trial.suggest_categorical('leaf_estimation_method', ['Newton', 'Gradient', 'Simple']),
+        'boosting_type': trial.suggest_categorical('boosting_type', ['Ordered', 'Plain']),
+        'bootstrap_type': trial.suggest_categorical('bootstrap_type', ['Bayesian', 'Bernoulli', 'MVS']),
+        'sampling_unit': trial.suggest_categorical('sampling_unit', ['Object', 'Group']),
+    }
+
+    cv = KFold(n_splits=fold_time, shuffle=True, random_state=2022)
+    cv_scores = np.zeros(fold_time)
+    # split
+    for idx, (train_idx, test_idx) in enumerate(cv.split(x, y)):
+        X_train, X_test = x.iloc[train_idx], x.iloc[test_idx]
+        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+        model = catboost.CatBoostRegressor(loss_function='RMSE',
+                                           thread_count=-1,
+                                           random_seed=2022,
+                                           name='CatBoostRegressor',
+                                           task_type='CPU',
+                                           custom_metric='MAE',
+                                           **params_grid)
+
+        model.fit(
+            X_train,
+            y_train,
+            eval_set=[(X_test, y_test)],
+            early_stopping_rounds=100,
+            verbose=False,
+            metric_period=100,
+            use_best_model=True
+        )
+        # 
+        pred_score = model.score(X_test, y_test)
+        # 
+        cv_scores[idx] = pred_score
+    # exp mean
+    return np.mean(cv_scores)
+
+# adjust parameters
+# direction: set minimize and maximize
+study = optuna.create_study(study_name = 'CatBoostRegressor',direction = 'minimize')
+# objective
+func = lambda trial:regression_objective(trial,x,y,fold_time = 7)
+# trial
+study.optimize(func,n_trials = 10)
+
+
+print(f'min_mae:{study.best_value}')
+print('min para：')
+for key,value in study.best_params.items():
+    print(f'{key} = {value},')
+
+%%time
+# split
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25)
+CBCR = catboost.CatBoostRegressor(loss_function='RMSE',  # objective
+                                thread_count=-1,  # n_jobs
+                                random_seed=2022,
+                                name='CatBoostRegressor',
+                                task_type='CPU',
+                                custom_metric='MAE',
+                                iterations = 661,
+                                learning_rate = 0.17743033721743953,
+                                depth = 12,
+                                l2_leaf_reg = 0.022047367605107684,
+                                rsm = 0.30501091937652824,
+                                border_count = 92,
+                                leaf_estimation_method = 'Gradient',
+                                boosting_type = 'Plain',
+                                bootstrap_type = 'MVS',
+                                sampling_unit = 'Object')
+CBCR.fit(x_train, y_train, eval_set = (x_test,y_test),verbose=False)
+
+
+joblib.dump(CBCR,r'--/CBCR.pkl')
+
+
+CBCR = joblib.load(r'--/CBCR.pkl')
+
+y_pred = CBCR.predict(testdf)
+
+test_id = iddf.iloc[200000:,:]
+
+submitdf = pd.DataFrame({'ID':test_id['ID'],'rent':y_pred})
+submitdf.to_csv(r'--/submit-catboost.csv',index = False,encoding = 'utf-8')
+submitdf.head()
+
+from sklearn.ensemble import VotingRegressor
+%%time
+estimator_list = [('lgb',LGBMR),('cat',CBCR)]
+final_model = VotingRegressor(estimator_list,n_jobs = -1)
+final_model.fit(x_train,y_train)
+
+
+y_pred = final_model.predict(testdf)
+
+test_id = iddf.iloc[200000:,:]  # 131.34284
+
+# submit
+submitdf = pd.DataFrame({'ID':test_id['ID'],'rent':y_pred})
+submitdf.to_csv(r'--/submit-finalmodel.csv',index = False,encoding = 'utf-8')
+submitdf.head()
+
+
+
