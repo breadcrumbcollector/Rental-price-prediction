@@ -398,10 +398,10 @@ LGBMR = joblib.load(r'--/LGBMR.pkl')
 y_pred = LGBMR.predict(testdf)
 # ID
 test_id = iddf.iloc[200000:,:]
-# submit
-submitdf = pd.DataFrame({'ID':test_id['ID'],'rent':y_pred})
-submitdf.to_csv(r'--/submitdf.csv',index = False,encoding = 'utf-8')
-submitdf.head() # 148.64429
+
+FinalModel = pd.DataFrame({'ID':test_id['ID'],'rent':y_pred})
+FinalModel.to_csv(r'--/FinalModel.csv',index = False,encoding = 'utf-8')
+FinalModel.head() # 148.64429
 
 # catboost
 # library
@@ -520,10 +520,9 @@ y_pred = final_model.predict(testdf)
 
 test_id = iddf.iloc[200000:,:]  # 131.34284
 
-# submit
-submitdf = pd.DataFrame({'ID':test_id['ID'],'rent':y_pred})
-submitdf.to_csv(r'--/submit-finalmodel.csv',index = False,encoding = 'utf-8')
-submitdf.head()
+FinalModel = pd.DataFrame({'ID':test_id['ID'],'rent':y_pred})
+FinalModel.to_csv(r'--/FinalModel.csv',index = False,encoding = 'utf-8')
+FinalModel.head()
 
 
 
